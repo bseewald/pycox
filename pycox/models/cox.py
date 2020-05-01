@@ -30,11 +30,11 @@ class _CoxBase(models.base.SurvBase):
             **kwargs):
         """Fit  model with inputs and targets. Where 'input' is the covariates, and
         'target' is a tuple with (durations, events).
-        
+
         Arguments:
             input {np.array, tensor or tuple} -- Input x passed to net.
-            target {np.array, tensor or tuple} -- Target [durations, events]. 
-        
+            target {np.array, tensor or tuple} -- Target [durations, events].
+
         Keyword Arguments:
             batch_size {int} -- Elements in each batch (default: {256})
             epochs {int} -- Number of epochs (default: {1})
@@ -43,7 +43,7 @@ class _CoxBase(models.base.SurvBase):
             num_workers {int} -- Number of workers used in the dataloader (default: {0})
             shuffle {bool} -- If we should shuffle the order of the dataset (default: {True})
             **kwargs are passed to 'make_dataloader' method.
-    
+
         Returns:
             TrainingLogger -- Training log
         """
@@ -57,7 +57,7 @@ class _CoxBase(models.base.SurvBase):
 
     def target_to_df(self, target):
         durations, events = tt.tuplefy(target).to_numpy()
-        df = pd.DataFrame({self.duration_col: durations, self.event_col: events}) 
+        df = pd.DataFrame({self.duration_col: durations, self.event_col: events})
         return df
 
     def compute_baseline_hazards(self, input=None, target=None, max_duration=None, sample=None, batch_size=8224,
@@ -67,7 +67,7 @@ class _CoxBase(models.base.SurvBase):
 
         Typically call
         model.compute_baseline_hazards() after fitting.
-        
+
         Keyword Arguments:
             input  -- Input data (train input) (default: {None})
             target  -- Target data (train target) (default: {None})
@@ -75,7 +75,7 @@ class _CoxBase(models.base.SurvBase):
             sample {float or int} -- Compute estimates of subsample of data (default: {None})
             batch_size {int} -- Batch size (default: {8224})
             set_hazards {bool} -- Set hazards in model object, or just return hazards. (default: {True})
-        
+
         Returns:
             pd.Series -- Pandas series with baseline hazards. Index is duration_col.
         """
@@ -179,6 +179,13 @@ class _CoxBase(models.base.SurvBase):
         surv = torch.from_numpy(surv.values.transpose())
         return tt.utils.array_or_tensor(surv, numpy, input)
 
+    def print_weights(self, path):
+        _file = open(path, "a")
+        _file.write("Weights: \n")
+        for key in self.net.state_dict():
+            _file.write(str(key) + " " + str(self.net.state_dict()[key]) + "\n")
+        _file.close()
+
     def save_net(self, path, **kwargs):
         """Save self.net and baseline hazards to file.
 
@@ -224,7 +231,7 @@ class _CoxBase(models.base.SurvBase):
     def df_to_input(self, df):
         input = df[self.input_cols].values
         return input
-    
+
 
 class _CoxPHBase(_CoxBase):
     def _compute_baseline_hazards(self, input, df_target, max_duration, batch_size, eval_=True, num_workers=0):
@@ -251,11 +258,11 @@ class _CoxPHBase(_CoxBase):
         if baseline_hazards_ is self.baseline_hazards_:
             bch = self.baseline_cumulative_hazards_
         else:
-            bch = self.compute_baseline_cumulative_hazards(set_hazards=False, 
+            bch = self.compute_baseline_cumulative_hazards(set_hazards=False,
                                                            baseline_hazards_=baseline_hazards_)
         bch = bch.loc[lambda x: x.index <= max_duration]
         expg = np.exp(self.predict(input, batch_size, True, eval_, num_workers=num_workers)).reshape(1, -1)
-        return pd.DataFrame(bch.values.reshape(-1, 1).dot(expg), 
+        return pd.DataFrame(bch.values.reshape(-1, 1).dot(expg),
                             index=bch.index)
 
     def partial_log_likelihood(self, input, target, g_preds=None, batch_size=8224, eps=1e-7, eval_=True,
@@ -297,13 +304,13 @@ class CoxPH(_CoxPHBase):
     """Cox proportional hazards model parameterized with a neural net.
     This is essentially the DeepSurv method [1].
 
-    The loss function is not quite the partial log-likelihood, but close.    
-    The difference is that for tied events, we use a random order instead of 
+    The loss function is not quite the partial log-likelihood, but close.
+    The difference is that for tied events, we use a random order instead of
     including all individuals that had an event at that point in time.
 
     Arguments:
         net {torch.nn.Module} -- A pytorch net.
-    
+
     Keyword Arguments:
         optimizer {torch or torchtuples optimizer} -- Optimizer (default: {None})
         device {str, int, torch.device} -- Device to compute on. (default: {None})
@@ -327,13 +334,13 @@ class CoxPHSorted(_CoxPHBase):
     """Cox proportional hazards model parameterized with a neural net.
     This is essentially the DeepSurv method [1].
 
-    The loss function is not quite the partial log-likelihood, but close.    
-    The difference is that for tied events, we use a random order instead of 
+    The loss function is not quite the partial log-likelihood, but close.
+    The difference is that for tied events, we use a random order instead of
     including all individuals that had an event at that point in time.
 
     Arguments:
         net {torch.nn.Module} -- A pytorch net.
-    
+
     Keyword Arguments:
         optimizer {torch or torchtuples optimizer} -- Optimizer (default: {None})
         device {str, int, torch.device} -- Device to compute on. (default: {None})
