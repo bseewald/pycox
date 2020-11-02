@@ -2,14 +2,14 @@
 import warnings
 import numpy as np
 import pandas as pd
-from pycox.evaluation.concordance import concordance_td
+from pycox.evaluation.concordance import concordance_td, concordance_td_modified
 from pycox.evaluation import ipcw, admin
 from pycox import utils
 
 
 class EvalSurv:
     """Class for evaluating predictions.
-    
+
     Arguments:
         surv {pd.DataFrame} -- Survival predictions.
         durations {np.array} -- Durations of test set.
@@ -18,7 +18,7 @@ class EvalSurv:
     Keyword Arguments:
         censor_surv {str, pd.DataFrame, EvalSurv} -- Censoring distribution.
             If provided data frame (survival function for censoring) or EvalSurv object,
-            this will be used. 
+            this will be used.
             If 'km', we will fit a Kaplan-Meier to the dataset.
             (default: {None})
         censor_durations {np.array}: -- Administrative censoring times. (default: {None})
@@ -37,7 +37,7 @@ class EvalSurv:
 
     @property
     def censor_surv(self):
-        """Estimated survival for censorings. 
+        """Estimated survival for censorings.
         Also an EvalSurv object.
         """
         return self._censor_surv
@@ -83,7 +83,7 @@ class EvalSurv:
     def add_censor_est(self, censor_surv, steps='post'):
         """Add censoring estimates so one can use inverse censoring weighting.
         `censor_surv` are the survival estimates trained on (durations, 1-events),
-        
+
         Arguments:
             censor_surv {pd.DataFrame} -- Censor survival curves.
 
@@ -110,7 +110,7 @@ class EvalSurv:
     def censor_durations(self):
         """Administrative censoring times."""
         return self._censor_durations
-    
+
     @censor_durations.setter
     def censor_durations(self, val):
         if val is not None:
@@ -141,7 +141,7 @@ class EvalSurv:
         return new
 
     def plot_surv(self, **kwargs):
-        """Plot survival estimates. 
+        """Plot survival estimates.
         kwargs are passed to `self.surv.plot`.
         """
         if len(self.durations) > 50:
@@ -169,12 +169,12 @@ class EvalSurv:
     #     return self.surv_at_times(time_grid).values
 
     def concordance_td(self, method='adj_antolini'):
-        """Time dependent concorance index from
+        """Time dependent concordance index from
         Antolini, L.; Boracchi, P.; and Biganzoli, E. 2005. A time-dependent discrimination
         index for survival data. Statistics in Medicine 24:3927–3944.
 
         If 'method' is 'antolini', the concordance from Antolini et al. is computed.
-    
+
         If 'method' is 'adj_antolini' (default) we have made a small modifications
         for ties in predictions and event times.
         We have followed step 3. in Sec 5.1. in Random Survival Forests paper, except for the last
@@ -190,10 +190,28 @@ class EvalSurv:
         return concordance_td(self.durations, self.events, self.surv.values,
                               self._duration_idx(), method)
 
+    def concordance_td_modified(self, durations_g2, events_g2, surv_g2, method='adj_antolini'):
+        """Time dependent concordance index from
+        Antolini, L.; Boracchi, P.; and Biganzoli, E. 2005. A time-dependent discrimination
+        index for survival data. Statistics in Medicine 24:3927–3944.
+
+        Modified version considering groups:
+        P{Sˆ(T_i|x_i) < Sˆ(T_j|x_j) | T_i < T_j, D_i = 1, i_group_1, j_group_2}
+
+        Keyword Arguments:
+            method {str} -- Type of c-index 'antolini' or 'adj_antolini' (default {'adj_antolini'}).
+
+        Returns:
+            float -- Time dependent concordance index.
+        """
+        idx_at_times_g2 = utils.idx_at_times(surv_g2.index.values, durations_g2, steps='post')
+        return concordance_td_modified(self.durations, self.events, self.surv.values, self._duration_idx(),
+                                       durations_g2, events_g2, surv_g2.values, idx_at_times_g2, method)
+
     def brier_score(self, time_grid, max_weight=np.inf):
         """Brier score weighted by the inverse censoring distribution.
         See Section 3.1.2 or [1] for details of the wighting scheme.
-        
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
@@ -218,7 +236,7 @@ class EvalSurv:
     def nbll(self, time_grid, max_weight=np.inf):
         """Negative binomial log-likelihood weighted by the inverse censoring distribution.
         See Section 3.1.2 or [1] for details of the wighting scheme.
-        
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
@@ -243,7 +261,7 @@ class EvalSurv:
     def integrated_brier_score(self, time_grid, max_weight=np.inf):
         """Integrated Brier score weighted by the inverse censoring distribution.
         Essentially an integral over values obtained from `brier_score(time_grid, max_weight)`.
-        
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
@@ -261,7 +279,7 @@ class EvalSurv:
     def integrated_nbll(self, time_grid, max_weight=np.inf):
         """Integrated negative binomial log-likelihood weighted by the inverse censoring distribution.
         Essentially an integral over values obtained from `nbll(time_grid, max_weight)`.
-        
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
@@ -280,8 +298,8 @@ class EvalSurv:
     def brier_score_admin(self, time_grid):
         """The Administrative Brier score proposed by [1].
         Removes individuals as they are administratively censored, event if they have experienced an
-        event. 
-        
+        event.
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
@@ -299,8 +317,8 @@ class EvalSurv:
     def integrated_brier_score_admin(self, time_grid):
         """The Integrated administrative Brier score proposed by [1].
         Removes individuals as they are administratively censored, event if they have experienced an
-        event. 
-        
+        event.
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
@@ -318,8 +336,8 @@ class EvalSurv:
     def nbll_admin(self, time_grid):
         """The negative administrative binomial log-likelihood proposed by [1].
         Removes individuals as they are administratively censored, event if they have experienced an
-        event. 
-        
+        event.
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
@@ -337,8 +355,8 @@ class EvalSurv:
     def integrated_nbll_admin(self, time_grid):
         """The Integrated negative administrative binomial log-likelihood score proposed by [1].
         Removes individuals as they are administratively censored, event if they have experienced an
-        event. 
-        
+        event.
+
         Arguments:
             time_grid {np.array} -- Durations where the brier score should be calculated.
 
