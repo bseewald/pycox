@@ -151,9 +151,4 @@ def concordance_td_modified(durations_g1, events_g1, surv_g1, surv_idx_g1, durat
         is_comparable = _is_comparable
         return (_sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant) /
                 _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable))
-        # aux1 = _sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant)
-        # aux2 =  _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable)
-        # cindex = aux1 / aux2
-        # print(aux1, aux2, cindex)
-        # return cindex
     return ValueError(f"Need 'method' to be e.g. 'antolini', got '{method}'.")
