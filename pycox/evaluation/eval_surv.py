@@ -2,7 +2,7 @@
 import warnings
 import numpy as np
 import pandas as pd
-from pycox.evaluation.concordance import concordance_td, concordance_td_modified
+from pycox.evaluation.concordance import concordance_td, concordance_td_modified_for_groups, concordance_td_modified_for_groups_time_event
 from pycox.evaluation import ipcw, admin
 from pycox import utils
 
@@ -190,7 +190,7 @@ class EvalSurv:
         return concordance_td(self.durations, self.events, self.surv.values,
                               self._duration_idx(), method)
 
-    def concordance_td_modified(self, durations_g2, events_g2, surv_g2, method='adj_antolini'):
+    def concordance_td_modified_for_groups(self, durations_g2, events_g2, surv_g2, method='adj_antolini'):
         """Time dependent concordance index from
         Antolini, L.; Boracchi, P.; and Biganzoli, E. 2005. A time-dependent discrimination
         index for survival data. Statistics in Medicine 24:3927–3944.
@@ -205,8 +205,28 @@ class EvalSurv:
             float -- Time dependent concordance index.
         """
         idx_at_times_g2 = utils.idx_at_times(surv_g2.index.values, durations_g2, steps='post')
-        return concordance_td_modified(self.durations, self.events, self.surv.values, self._duration_idx(),
-                                       durations_g2, events_g2, surv_g2.values, idx_at_times_g2, method)
+        return concordance_td_modified_for_groups(self.durations, self.events, self.surv.values, self._duration_idx(),
+                                                  durations_g2, events_g2, surv_g2.values, idx_at_times_g2, method)
+
+
+    def concordance_td_modified_for_groups_time_event(self, durations_g2, events_g2, surv_g2, method='adj_antolini'):
+        """Time dependent concordance index from
+        Antolini, L.; Boracchi, P.; and Biganzoli, E. 2005. A time-dependent discrimination
+        index for survival data. Statistics in Medicine 24:3927–3944.
+
+        Modified version considering groups:
+        P{Sˆ(T_i|x_i) < Sˆ(T_j|x_j) | T_i < T_j, D_i = 1, i_group_1, j_group_2}
+
+        Keyword Arguments:
+            method {str} -- Type of c-index 'antolini' or 'adj_antolini' (default {'adj_antolini'}).
+
+        Returns:
+            float -- Time dependent concordance index.
+        """
+        idx_at_times_g2 = utils.idx_at_times(surv_g2.index.values, durations_g2, steps='post')
+        return concordance_td_modified_for_groups_time_event(self.durations, self.events, self.surv.values, self._duration_idx(),
+                                                             durations_g2, events_g2, surv_g2.values, idx_at_times_g2, method)
+
 
     def brier_score(self, time_grid, max_weight=np.inf):
         """Brier score weighted by the inverse censoring distribution.

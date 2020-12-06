@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 import numba
@@ -24,6 +23,20 @@ def _is_concordant(s_i, s_j, t_i, t_j, d_i, d_j):
             conc = (s_i < s_j) + (s_i == s_j) * 0.5  # different from RSF paper.
         elif d_j:
             conc = (s_i > s_j) + (s_i == s_j) * 0.5  # different from RSF paper.
+    return conc * _is_comparable(t_i, t_j, d_i, d_j)
+
+@numba.jit(nopython=True)
+def _is_concordant_modified(s_i, s_j, t_i, t_j, d_i, d_j):
+    conc = 0.
+    if t_i < t_j:
+        conc = (s_i > s_j) + (s_i == s_j) * 0.5
+    elif t_i == t_j:
+        if d_i & d_j:
+            conc = 1. - (s_i != s_j) * 0.5
+        elif d_i:
+            conc = (s_i > s_j) + (s_i == s_j) * 0.5  # different from RSF paper.
+        elif d_j:
+            conc = (s_i < s_j) + (s_i == s_j) * 0.5  # different from RSF paper.
     return conc * _is_comparable(t_i, t_j, d_i, d_j)
 
 @numba.jit(nopython=True)
@@ -129,7 +142,7 @@ def concordance_td(durations, events, surv, surv_idx, method='adj_antolini'):
     return ValueError(f"Need 'method' to be e.g. 'antolini', got '{method}'.")
 
 
-def concordance_td_modified(durations_g1, events_g1, surv_g1, surv_idx_g1, durations_g2, events_g2, surv_g2, surv_idx_g2, method):
+def concordance_td_modified_for_groups(durations_g1, events_g1, surv_g1, surv_idx_g1, durations_g2, events_g2, surv_g2, surv_idx_g2, method):
     """
         Returns:
             float -- Modified time dependent concordance index.
@@ -151,4 +164,29 @@ def concordance_td_modified(durations_g1, events_g1, surv_g1, surv_idx_g1, durat
         is_comparable = _is_comparable
         return (_sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant) /
                 _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable))
+    return ValueError(f"Need 'method' to be e.g. 'antolini', got '{method}'.")
+
+
+def concordance_td_modified_for_groups_time_event(durations_g1, events_g1, surv_g1, surv_idx_g1, durations_g2, events_g2, surv_g2, surv_idx_g2, method):
+    """
+        Returns:
+            float -- Modified time dependent concordance index.
+    """
+    # Group 1
+    assert durations_g1.shape[0] == surv_g1.shape[1] == surv_idx_g1.shape[0] == events_g1.shape[0]
+    assert type(durations_g1) is type(events_g1) is type(surv_g1) is type(surv_idx_g1) is np.ndarray
+    # Group 2
+    assert durations_g2.shape[0] == surv_g2.shape[1] == surv_idx_g2.shape[0] == events_g2.shape[0]
+    assert type(durations_g2) is type(events_g2) is type(surv_g2) is type(surv_idx_g2) is np.ndarray
+
+    if events_g1.dtype in ('float', 'float32'):
+        events_g1 = events_g1.astype('int32')
+    if events_g2.dtype in ('float', 'float32'):
+        events_g2 = events_g2.astype('int32')
+
+    if method == 'adj_antolini':
+        is_concordant_modified = _is_concordant_modified
+        is_comparable_modified = _is_comparable
+        return (_sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant_modified) /
+                _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable_modified))
     return ValueError(f"Need 'method' to be e.g. 'antolini', got '{method}'.")
