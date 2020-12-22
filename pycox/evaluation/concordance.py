@@ -162,8 +162,11 @@ def concordance_td_modified_for_groups(durations_g1, events_g1, surv_g1, surv_id
     if method == 'adj_antolini':
         is_concordant = _is_concordant
         is_comparable = _is_comparable
-        return (_sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant) /
-                _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable))
+        # return (_sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant) /
+        #         _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable))
+        concordant_pairs = _sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant)
+        pairs = _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable)
+        return concordant_pairs, pairs
     return ValueError(f"Need 'method' to be e.g. 'antolini', got '{method}'.")
 
 
@@ -187,6 +190,9 @@ def concordance_td_modified_for_groups_time_event(durations_g1, events_g1, surv_
     if method == 'adj_antolini':
         is_concordant_modified = _is_concordant_modified
         is_comparable_modified = _is_comparable
-        return (_sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant_modified) /
-                _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable_modified))
+        # return (_sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant_modified) /
+        #         _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable_modified))
+        concordant_pairs = _sum_concordant_disc_modified(surv_g1, surv_g2, durations_g1, durations_g2, events_g1, events_g2, surv_idx_g1, surv_idx_g2, is_concordant_modified)
+        pairs = _sum_comparable_modified(durations_g1, durations_g2, events_g1, events_g2, is_comparable_modified)
+        return concordant_pairs, pairs
     return ValueError(f"Need 'method' to be e.g. 'antolini', got '{method}'.")
